@@ -1,27 +1,76 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { jwtDecode } from 'jwt-decode'
+import type { AuthTokens } from '#/lib/cognito'
 
-interface User {
+interface CognitoIdTokenPayload {
+  sub: string
+  email: string
+  given_name: string
+  family_name: string
+}
+
+export interface AuthUser {
   id: string
   email: string
-  role: 'admin' | 'student'
+  firstName: string
+  lastName: string
+  role?: 'admin' | 'student'
+  profilePictureUrl?: string
 }
 
 interface AuthState {
-  user: User | null
+  user: AuthUser | null
+  tokens: AuthTokens | null
   isAuthenticated: boolean
-  setUser: (user: User) => void
-  logout: () => void
+
+  setSession: (tokens: AuthTokens) => void
+  clearSession: () => void
+  setProfile: (
+    data: Partial<Pick<AuthUser, 'role' | 'profilePictureUrl'>>,
+  ) => void
+}
+
+function parseUser(idToken: string): AuthUser {
+  const payload = jwtDecode<CognitoIdTokenPayload>(idToken)
+
+  return {
+    id: payload.sub,
+    email: payload.email,
+    firstName: payload.given_name,
+    lastName: payload.family_name,
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      tokens: null,
       isAuthenticated: false,
-      setUser: (user) => set({ user, isAuthenticated: true }),
-      logout: () => set({ user: null, isAuthenticated: false }),
+
+      setSession: (tokens) => {
+        const user = parseUser(tokens.idToken)
+        set({ tokens, user, isAuthenticated: true })
+      },
+
+      clearSession: () => {
+        set({ tokens: null, user: null, isAuthenticated: false })
+      },
+
+      setProfile: (data) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...data } : null,
+        }))
+      },
     }),
-    { name: 'auth-storage' }
-  )
+    {
+      name: 'efi-auth',
+      partialize: (state) => ({
+        tokens: state.tokens,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
 )

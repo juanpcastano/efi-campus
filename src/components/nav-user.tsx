@@ -30,7 +30,7 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const logout = useAuthStore((state) => state.logout)
+  const logout = useAuthStore((state) => state.clearSession)
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { isMobile } = useSidebar()
