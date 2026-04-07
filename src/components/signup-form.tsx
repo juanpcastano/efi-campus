@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '#/lib/utils'
 import { Button } from '#/components/ui/button'
 import {
@@ -18,93 +19,83 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { useState } from 'react'
-import {
-  getExampleNumber,
-  isValidPhoneNumber,
-  AsYouType,
-  type CountryCode,
-  getCountries,
-  getCountryCallingCode,
-} from 'libphonenumber-js'
-import examples from 'libphonenumber-js/mobile/examples'
-import { confirmSignUp, initiateLogin, signUp, verifyOtp } from '#/lib/cognito'
+import { confirmSignUp, loginWithPassword, signUp } from '#/lib/cognito'
 import { useAuthStore } from '#/store/authStore'
 import { GoogleSignInButton } from './google-signin-button'
+import {
+  COUNTRIES,
+  usePhonePrefix,
+  getMaxLength,
+  getPlaceholder,
+  validatePhoneNumber,
+} from '#/hooks/use-phone-prefix'
 
-function getMaxLength(countryCode: CountryCode): number {
-  const example = getExampleNumber(countryCode, examples)
-  return example?.formatNational().length ?? 15
+interface FormData {
+  firstName: string
+  lastName: string
+  email: string
+  otp: string
 }
 
-const countryNames = new Intl.DisplayNames(['es'], { type: 'region' })
-
-const COUNTRIES = getCountries()
-  .map((code) => ({
-    code,
-    label: countryNames.of(code) ?? code,
-    prefix: `+${getCountryCallingCode(code)}`,
-  }))
-  .sort((a, b) => a.label.localeCompare(b.label, 'es'))
-
-function getPlaceholder(countryCode: CountryCode): string {
-  const example = getExampleNumber(countryCode, examples)
-  return example?.formatNational() ?? ''
+interface SignupFormProps extends React.ComponentProps<'form'> {
+  className?: string
 }
 
-export function SignupForm({
-  className,
-  ...props
-}: React.ComponentProps<'form'>) {
+export function SignupForm({ className, ...props }: SignupFormProps) {
   const navigate = useNavigate()
   const setSession = useAuthStore((state) => state.setSession)
 
   const [step, setStep] = useState<'form' | 'otp'>('form')
-  const [countryCode, setCountryCode] = useState<CountryCode>('CO')
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const [formData, setFormData] = useState<FormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    otp: '',
+  })
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState(false)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
-  const [session, setSession2] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const selectedCountry = COUNTRIES.find((c) => c.code === countryCode)!
+  const {
+    countryCode,
+    phoneNumber,
+    selectedCountry,
+    handleCountryChange,
+    handlePhoneChange,
+    getFullPhoneNumber,
+  } = usePhonePrefix()
 
-  function handleCountryChange(value: string) {
-    const country = COUNTRIES.find((c) => c.code === value)
-    if (country) {
-      setCountryCode(country.code)
-      setPhoneNumber('')
-      setPhoneError(false)
+  function handleInputChange(field: keyof FormData) {
+    return (e: React.ChangeEvent<HTMLInputElement> | string) => {
+      const value = typeof e === 'string' ? e : e.target.value
+      setFormData((prev) => ({ ...prev, [field]: value }))
     }
   }
 
-  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const formatted = new AsYouType(countryCode).input(e.target.value)
-    setPhoneNumber(formatted)
-    setPhoneError(false)
-  }
-
   function handlePhoneBlur() {
-    if (!phoneNumber) return
-    const fullNumber = selectedCountry.prefix + phoneNumber.replace(/\s/g, '')
-    setPhoneError(!isValidPhoneNumber(fullNumber))
+    const isValid = validatePhoneNumber(phoneNumber, countryCode)
+    setPhoneError(!isValid)
   }
 
   async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (phoneError) return
 
-    const fullPhoneNumber = `${selectedCountry.prefix}${phoneNumber.replace(/\s/g, '')}`
+    const fullPhoneNumber = getFullPhoneNumber()
 
     setIsLoading(true)
     setError(null)
 
     try {
-      await signUp({ email, firstName, lastName, phoneNumber: fullPhoneNumber })
+      const generatedPassword = await signUp({
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: fullPhoneNumber,
+      })
+
+      setTempPassword(generatedPassword)
       setStep('otp')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la cuenta')
@@ -112,24 +103,20 @@ export function SignupForm({
       setIsLoading(false)
     }
   }
-
   async function handleVerifyOtp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!tempPassword) return
+
     setIsLoading(true)
     setError(null)
 
     try {
-      // 1. Verificar el email con el código
-      await confirmSignUp(email, otp)
+      // 1. Confirmar el código OTP
+      await confirmSignUp(formData.email, formData.otp)
 
-      // 2. Iniciar login para obtener la session
-      const loginSession = await initiateLogin(email)
-      setSession2(loginSession)
+      // 2. Autologin usando la contraseña generada
+      const tokens = await loginWithPassword(formData.email, tempPassword)
 
-      // 3. Verificar OTP de login (Cognito manda uno nuevo)
-      const tokens = await verifyOtp(email, otp, loginSession)
-
-      // 4. Guardar sesión y redirigir
       setSession(tokens)
       navigate({ to: '/' })
     } catch (err) {
@@ -150,7 +137,9 @@ export function SignupForm({
             <h1 className="text-2xl font-bold">Verifica tu email</h1>
             <p className="text-sm text-balance text-muted-foreground">
               Ingresa el código que enviamos a{' '}
-              <span className="font-medium text-foreground">{email}</span>
+              <span className="font-medium text-foreground">
+                {formData.email}
+              </span>
             </p>
           </div>
           {error && (
@@ -162,8 +151,8 @@ export function SignupForm({
               id="otp"
               type="text"
               placeholder="123456"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              value={formData.otp}
+              onChange={handleInputChange('otp')}
               required
               className="bg-background"
             />
@@ -173,17 +162,24 @@ export function SignupForm({
               {isLoading ? 'Verificando...' : 'Verificar'}
             </Button>
           </Field>
-          <FieldDescription className="text-center">
-            ¿No recibiste el código?{' '}
+          <FieldDescription className="flex flex-col items-center gap-3 text-center mt-2">
             <button
               type="button"
-              className="underline underline-offset-4"
-              onClick={() => handleSignUp({ preventDefault: () => {} } as any)}
+              className="underline underline-offset-4 hover:text-primary hover:cursor-pointer"
+              onClick={() => {
+                setStep('form')
+                setFormData((prev) => ({ ...prev, otp: '' }))
+                setError(null)
+              }}
             >
-              Reenviar
+              Corregir mis datos
             </button>
-            <br />
-            <Link to="/login">Regresar al login</Link>
+            <Link
+              to="/login"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              Regresar al login
+            </Link>
           </FieldDescription>
         </FieldGroup>
       </form>
@@ -207,31 +203,31 @@ export function SignupForm({
           <p className="text-sm text-destructive text-center">{error}</p>
         )}
         <Field>
-          <FieldLabel htmlFor="name">Nombre(s)</FieldLabel>
+          <FieldLabel htmlFor="firstName">Nombre(s)</FieldLabel>
           <Input
-            id="name"
+            id="firstName"
             type="text"
             placeholder="Jhon"
             required
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            value={formData.firstName}
+            onChange={handleInputChange('firstName')}
             className="bg-background"
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="lastname">Apellido(s)</FieldLabel>
+          <FieldLabel htmlFor="lastName">Apellido(s)</FieldLabel>
           <Input
-            id="lastname"
+            id="lastName"
             type="text"
             placeholder="Doe"
             required
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            value={formData.lastName}
+            onChange={handleInputChange('lastName')}
             className="bg-background"
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="number">Número Celular</FieldLabel>
+          <FieldLabel htmlFor="phoneNumber">Número Celular</FieldLabel>
           <div className="flex gap-2">
             <Select value={countryCode} onValueChange={handleCountryChange}>
               <SelectTrigger className="w-fit bg-background">
@@ -249,11 +245,11 @@ export function SignupForm({
               </SelectContent>
             </Select>
             <Input
-              id="number"
+              id="phoneNumber"
               type="tel"
               placeholder={getPlaceholder(countryCode)}
               value={phoneNumber}
-              onChange={handlePhoneChange}
+              onChange={(e) => handlePhoneChange(e.target.value)}
               onBlur={handlePhoneBlur}
               maxLength={getMaxLength(countryCode)}
               required
@@ -277,8 +273,8 @@ export function SignupForm({
             type="email"
             placeholder="alianza@tdv.com"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={handleInputChange('email')}
             className="bg-background"
           />
           <FieldDescription>

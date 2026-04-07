@@ -36,8 +36,15 @@ export function LoginForm({
       const cognitoSession = await initiateLogin(email)
       setSession2(cognitoSession)
       setStep('otp')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al enviar el código')
+    } catch (err: any) {
+      if (
+        err.message?.includes('SilentValidationFail') ||
+        err.name === 'UserNotFoundException'
+      ) {
+        setStep('otp')
+      } else {
+        setError('Ocurrió un error inesperado. Intenta más tarde.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -78,7 +85,7 @@ export function LoginForm({
             <p className="text-sm text-destructive text-center">{error}</p>
           )}
           <Field>
-            <FieldLabel htmlFor="otp">Código de verificación</FieldLabel>
+            <FieldLabel htmlFor="otp">Código de autenticación</FieldLabel>
             <Input
               id="otp"
               type="text"
@@ -90,7 +97,8 @@ export function LoginForm({
               className="bg-background"
             />
             <FieldDescription className="text-center">
-              Si este correo no está registrado, el código nunca llegará,{' '}
+              Si este correo no está registrado o no fue verificado cuando se
+              registró, el código nunca llegará,{' '}
               <Link className="underline underline-offset-4" to="/signup">
                 haz click aquí para registrarte
               </Link>

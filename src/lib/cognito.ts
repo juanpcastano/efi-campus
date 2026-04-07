@@ -65,7 +65,6 @@ export async function confirmSignUp(
   )
 }
 
-// 2. Nueva función para reenviar el código de registro
 export async function resendSignUpCode(email: string): Promise<void> {
   await client.send(
     new ResendConfirmationCodeCommand({
@@ -75,7 +74,6 @@ export async function resendSignUpCode(email: string): Promise<void> {
   )
 }
 
-// 3. Nueva función para login directo con contraseña (Auto-login post registro)
 export async function loginWithPassword(
   email: string,
   password: string,
@@ -102,6 +100,7 @@ export async function loginWithPassword(
     refreshToken: result.RefreshToken,
   }
 }
+
 export async function initiateLogin(email: string): Promise<string> {
   const response = await client.send(
     new InitiateAuthCommand({
