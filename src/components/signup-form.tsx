@@ -6,7 +6,6 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -21,7 +20,6 @@ import {
 } from './ui/select'
 import { confirmSignUp, loginWithPassword, signUp } from '#/lib/cognito'
 import { useAuthStore } from '#/store/authStore'
-import { GoogleSignInButton } from './google-signin-button'
 import {
   COUNTRIES,
   usePhonePrefix,
@@ -288,9 +286,9 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
             {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
         </Field>
-        <FieldSeparator>O continúa con tu cuenta de Google</FieldSeparator>
+        {/*<FieldSeparator>O continúa con tu cuenta de Google</FieldSeparator>
+          <GoogleSignInButton />*/}
         <Field>
-          <GoogleSignInButton />
           <FieldDescription className="px-6 text-center">
             ¿Ya tienes una cuenta?{' '}
             <Link to="/login" className="underline underline-offset-4">

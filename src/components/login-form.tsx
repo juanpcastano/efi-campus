@@ -5,14 +5,12 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from '#/components/ui/field'
 import { Input } from '#/components/ui/input'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { initiateLogin, verifyOtp } from '#/lib/cognito'
 import { useAuthStore } from '#/store/authStore'
-import { GoogleSignInButton } from './google-signin-button'
 
 export function LoginForm({
   className,
@@ -160,9 +158,9 @@ export function LoginForm({
             {isLoading ? 'Enviando código...' : 'Ingresar'}
           </Button>
         </Field>
-        <FieldSeparator>O ingresa con tu cuenta de Google</FieldSeparator>
+        {/*<FieldSeparator>O ingresa con tu cuenta de Google</FieldSeparator>
+          <GoogleSignInButton />*/}
         <Field>
-          <GoogleSignInButton />
           <FieldDescription className="text-center">
             ¿Aún no tienes una cuenta?{' '}
             <Link to="/signup" className="underline underline-offset-4">

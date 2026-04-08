@@ -12,7 +12,7 @@ import {
 
 const client = new CognitoIdentityProviderClient({ region: 'us-east-2' })
 
-const CLIENT_ID = '2tlllc6ia4ncv5srnu22fa7qk3'
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID
 
 export interface AuthTokens {
   accessToken: string
@@ -80,7 +80,7 @@ export async function loginWithPassword(
 ): Promise<AuthTokens> {
   const response = await client.send(
     new InitiateAuthCommand({
-      AuthFlow: AuthFlowType.USER_PASSWORD_AUTH, // Asegúrate de tener ALLOW_USER_PASSWORD_AUTH habilitado en tu App Client
+      AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
       ClientId: CLIENT_ID,
       AuthParameters: {
         USERNAME: email,
