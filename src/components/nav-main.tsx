@@ -12,6 +12,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from '#/components/ui/sidebar'
 import { Link } from '@tanstack/react-router'
 import { ChevronRightIcon } from 'lucide-react'
@@ -30,17 +31,18 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { toggleSidebar } = useSidebar()
   return (
     <SidebarGroup>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
-            <SidebarMenuItem>
+            <SidebarMenuItem onClick={() => toggleSidebar()}>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
+                <Link to={item.url}>
                   {item.icon}
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>

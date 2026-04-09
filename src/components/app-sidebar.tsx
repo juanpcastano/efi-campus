@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 
 import { NavMain } from '#/components/nav-main'
@@ -15,13 +13,9 @@ import {
   SidebarMenuItem,
 } from '#/components/ui/sidebar'
 import { HouseIcon, NotebookPen, Route, Bell } from 'lucide-react'
+import { useAuthStore } from '#/store/authStore'
 
 const data = {
-  user: {
-    name: 'Juan Pablo Castaño',
-    email: 'jpc4stano@gmail.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
   navMain: [
     {
       title: 'Inicio',
@@ -52,6 +46,14 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const user = useAuthStore((state) => state.user)
+  const userData = user
+    ? {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        avatar: user.profilePictureUrl ?? '', // O un fallback a una imagen por defecto
+      }
+    : null
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -76,9 +78,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/*<NavProjects projects={data.projects} />*/}
         {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
+      <SidebarFooter>{userData && <NavUser user={userData} />}</SidebarFooter>
     </Sidebar>
   )
 }

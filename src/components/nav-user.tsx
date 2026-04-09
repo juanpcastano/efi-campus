@@ -33,7 +33,7 @@ export function NavUser({
   const logout = useAuthStore((state) => state.clearSession)
   const navigate = useNavigate()
   const { setTheme } = useTheme()
-  const { isMobile } = useSidebar()
+  const { isMobile, toggleSidebar } = useSidebar()
   const handleLogout = () => {
     logout()
     navigate({ to: '/login' })
@@ -87,7 +87,11 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <Link to="/account">
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    toggleSidebar()
+                  }}
+                >
                   <User />
                   Mi Cuenta
                 </DropdownMenuItem>
