@@ -3,10 +3,11 @@ import {
   AsYouType,
   getExampleNumber,
   isValidPhoneNumber,
-  type CountryCode,
+  getCountries,
+  getCountryCallingCode,
 } from 'libphonenumber-js'
+import type { CountryCode } from 'libphonenumber-js'
 import examples from 'libphonenumber-js/mobile/examples'
-import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 
 export interface Country {
   code: CountryCode

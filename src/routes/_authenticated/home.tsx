@@ -1,6 +1,7 @@
 import { useBreadcrumbStore } from '#/store/breadcrumbStore'
 import { useAuthStore } from '#/store/authStore'
 import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 
 const MOCK_DATA = {
@@ -29,8 +30,11 @@ export const Route = createFileRoute('/_authenticated/home')({
 
 function RouteComponent() {
   const user = useAuthStore((state) => state.user)
-  useBreadcrumbStore((store) => store.setPage)('Inicio')
-  useBreadcrumbStore((store) => store.setPath)([])
+
+  useEffect(() => {
+    useBreadcrumbStore.getState().setPage('Inicio')
+    useBreadcrumbStore.getState().setPath([])
+  }, [])
 
   return (
     <div className="p-6 space-y-6">

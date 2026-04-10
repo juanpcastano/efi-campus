@@ -1,6 +1,14 @@
 import { apiClient } from '#/lib/apiClient'
 import type { AuthUser } from '#/store/authStore'
 
+export interface User {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: 'admin' | 'student'
+}
+
 interface UserApiResponse {
   user: {
     created_at: string
@@ -15,6 +23,10 @@ interface UserApiResponse {
   }
 }
 
+interface UsersApiResponse {
+  users: User[]
+}
+
 export async function fetchCurrentUser(): Promise<Partial<AuthUser>> {
   const response = await apiClient.get<UserApiResponse>('/users/me')
 
@@ -25,6 +37,11 @@ export async function fetchCurrentUser(): Promise<Partial<AuthUser>> {
     profilePictureUrl: response.user.profile_picture_url ?? undefined,
     phoneNumber: response.user.phone_number,
   }
+}
+
+export async function fetchUsers(): Promise<User[]> {
+  const response = await apiClient.get<UsersApiResponse>('/users')
+  return response.users
 }
 
 export async function updateCurrentUser(data: {

@@ -288,7 +288,7 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
             {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
         </Field>
-        {/*<FieldSeparator>O continúa con tu cuenta de Google</FieldSeparator>
+        {/* <FieldSeparator>O continúa con tu cuenta de Google</FieldSeparator>
           <GoogleSignInButton />*/}
         <Field>
           <FieldDescription className="px-6 text-center">

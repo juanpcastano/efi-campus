@@ -31,8 +31,10 @@ export const Route = createFileRoute('/_authenticated/account')({
 })
 
 function RouteComponent() {
-  useBreadcrumbStore((store) => store.setPage)('Mi Cuenta')
-  useBreadcrumbStore((store) => store.setPath)([])
+  useEffect(() => {
+    useBreadcrumbStore.getState().setPage('Mi Cuenta')
+    useBreadcrumbStore.getState().setPath([])
+  }, [])
 
   const user = useAuthStore((state) => state.user)
   const setProfile = useAuthStore((state) => state.setProfile)

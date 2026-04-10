@@ -1,5 +1,12 @@
 import { apiClient } from '#/lib/apiClient'
 
+export interface Professor {
+  id: string
+  firstName: string
+  lastName: string
+  dictationId?: string
+}
+
 export interface Group {
   id: string
   course_id: string
@@ -8,12 +15,18 @@ export interface Group {
   term: string
   open: boolean
   structure_id: string | null
+  professors: Professor[]
   created_at: string
   updated_at: string
 }
 
 interface GroupApiResponse {
   groups: Group[]
+}
+
+export async function fetchGroup(id: string): Promise<Group> {
+  const response = await apiClient.get<{ group: Group }>(`/groups/${id}`)
+  return response.group
 }
 
 export async function fetchGroups(): Promise<Group[]> {
@@ -48,4 +61,18 @@ export async function toggleGroupOpen(id: string): Promise<void> {
 
 export async function deleteGroup(id: string): Promise<void> {
   await apiClient.delete(`/groups/${id}`)
+}
+
+export async function addDictation(
+  groupId: string,
+  userId: string,
+): Promise<void> {
+  await apiClient.post(`/groups/${groupId}/dictations`, { user_id: userId })
+}
+
+export async function deleteDictation(
+  groupId: string,
+  dictationId: string,
+): Promise<void> {
+  await apiClient.delete(`/groups/${groupId}/dictations/${dictationId}`)
 }

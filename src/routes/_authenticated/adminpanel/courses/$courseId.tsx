@@ -41,8 +41,13 @@ import {
   updateGroup,
   toggleGroupOpen,
   deleteGroup,
+  addDictation,
+  deleteDictation,
+  fetchGroup,
 } from '#/lib/groupService'
-import type { Group } from '#/lib/groupService'
+import { fetchUsers } from '#/lib/userService'
+import type { Group, Professor } from '#/lib/groupService'
+import type { User } from '#/lib/userService'
 import { useBreadcrumbStore } from '#/store/breadcrumbStore'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 
@@ -73,14 +78,13 @@ export const Route = createFileRoute(
 
 function GroupsComponent() {
   const { courseId } = Route.useParams()
-  useBreadcrumbStore((store) => store.setPage)(courseId)
-  useBreadcrumbStore((store) => store.setPath)([
-    { displayName: 'Panel de Administración', link: '/adminpanel' },
-  ])
+
   const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [isAdding, setIsAdding] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [selectedProfessor, setSelectedProfessor] = useState<string>('')
   const [formData, setFormData] = useState({
     schedule: '',
     day_of_week: 'monday',
@@ -102,9 +106,51 @@ function GroupsComponent() {
     }
   }
 
+  const loadUsers = async () => {
+    try {
+      const allUsers = await fetchUsers()
+      // console.log('All users:', allUsers)
+      setUsers(allUsers) // Quitamos el filtro por 'admin' temporalmente para ver si aparecen todos
+    } catch (error) {
+      console.error('Failed to load users:', error)
+    }
+  }
+
   useEffect(() => {
+    useBreadcrumbStore.getState().setPage(courseId)
+    useBreadcrumbStore
+      .getState()
+      .setPath([
+        { displayName: 'Panel de Administración', link: '/adminpanel' },
+      ])
     loadGroups()
+    loadUsers()
   }, [courseId])
+
+  const handleAddProfessor = async () => {
+    if (!editingGroup || !selectedProfessor) return
+    try {
+      await addDictation(editingGroup.id, selectedProfessor)
+      const updatedGroup = await fetchGroup(editingGroup.id)
+      setEditingGroup(updatedGroup)
+      setSelectedProfessor('')
+      await loadGroups()
+    } catch (error) {
+      console.error('Failed to add professor:', error)
+    }
+  }
+
+  const handleDeleteProfessor = async (dictationId: string) => {
+    if (!editingGroup) return
+    try {
+      await deleteDictation(editingGroup.id, dictationId)
+      const updatedGroup = await fetchGroup(editingGroup.id)
+      setEditingGroup(updatedGroup)
+      await loadGroups()
+    } catch (error) {
+      console.error('Failed to delete professor:', error)
+    }
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -188,6 +234,14 @@ function GroupsComponent() {
     columnHelper.accessor('schedule', {
       header: 'Horario',
       cell: (info) => info.getValue(),
+    }),
+    columnHelper.accessor('professors', {
+      header: 'Profesores',
+      cell: (info) =>
+        info
+          .getValue()
+          .map((p) => `${p.firstName} ${p.lastName}`)
+          .join(', ') || 'Sin asignar',
     }),
     columnHelper.accessor('term', {
       header: 'Término',
@@ -333,6 +387,69 @@ function GroupsComponent() {
                   </Select>
                 </div>
               </div>
+              {editingGroup && (
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="font-semibold">Profesores Asignados</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {editingGroup.professors.map((p) => (
+                      <Card
+                        key={p.id}
+                        className="flex items-center gap-2 bg-secondary p-2 rounded"
+                      >
+                        <span>
+                          {p.firstName} {p.lastName}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteProfessor(p.dictationId!)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="professor_select">Asignar Profesor</Label>
+                      <Select
+                        value={selectedProfessor}
+                        onValueChange={setSelectedProfessor}
+                      >
+                        <SelectTrigger id="professor_select">
+                          <SelectValue placeholder="Seleccionar profesor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Usuarios</SelectLabel>
+                            {users
+                              .filter(
+                                (u) =>
+                                  !editingGroup.professors.find(
+                                    (p) => p.id === u.id,
+                                  ),
+                              )
+                              .map((u) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.first_name} {u.last_name}
+                                </SelectItem>
+                              ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        onClick={handleAddProfessor}
+                        disabled={!selectedProfessor}
+                      >
+                        Agregar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2 justify-end">
                 <Button
                   variant="outline"

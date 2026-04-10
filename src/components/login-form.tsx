@@ -161,7 +161,7 @@ export function LoginForm({
             {isLoading ? 'Enviando código...' : 'Ingresar'}
           </Button>
         </Field>
-        {/*<FieldSeparator>O ingresa con tu cuenta de Google</FieldSeparator>
+        {/* <FieldSeparator>O ingresa con tu cuenta de Google</FieldSeparator>
           <GoogleSignInButton />*/}
         <Field>
           <FieldDescription className="text-center">
