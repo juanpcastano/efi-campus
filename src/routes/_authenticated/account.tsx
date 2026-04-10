@@ -84,7 +84,12 @@ function RouteComponent() {
   }
 
   const handleUpdate = async () => {
-    if (phoneError) return
+    const isValid = validatePhoneNumber(phoneNumber, countryCode)
+    if (!isValid) {
+      setPhoneError(true)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSuccess(null)

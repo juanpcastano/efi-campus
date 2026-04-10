@@ -45,7 +45,7 @@ export function validatePhoneNumber(
   phoneNumber: string,
   countryCode: CountryCode,
 ): boolean {
-  if (!phoneNumber) return true
+  if (!phoneNumber) return false
   const country = COUNTRIES.find((c) => c.code === countryCode)
   if (!country) return false
   const fullNumber = `${country.prefix}${phoneNumber.replace(/\s/g, '')}`

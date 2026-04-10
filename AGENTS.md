@@ -13,6 +13,8 @@
 
 - **Path Aliases**: Use `#/*` to reference `src/*` (e.g., `import X from '#/components/X'`)
 - **Tech Stack**: React 19, TypeScript, Vite, TanStack Router, Zustand, Tailwind CSS, shadcn/ui
+- **API Client**: All API calls are made using the `apiClient` instance. For each resource, use the corresponding service in `lib/services/` (e.g., `userService`, `courseService`, `groupService`)
+- **UI Components**: Always prefer using shadcn/ui components already implemented. If you need a new component, request it first
 
 ## API Endpoints
 

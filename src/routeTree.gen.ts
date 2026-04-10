@@ -17,7 +17,10 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedLearningrouteRouteImport } from './routes/_authenticated/learningroute'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticated/courses'
+import { Route as AuthenticatedAdminpanelRouteImport } from './routes/_authenticated/adminpanel'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedAdminpanelIndexRouteImport } from './routes/_authenticated/adminpanel/index'
+import { Route as AuthenticatedAdminpanelCoursesCourseIdRouteImport } from './routes/_authenticated/adminpanel/courses/$courseId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -60,21 +63,41 @@ const AuthenticatedCoursesRoute = AuthenticatedCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminpanelRoute = AuthenticatedAdminpanelRouteImport.update({
+  id: '/adminpanel',
+  path: '/adminpanel',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminpanelIndexRoute =
+  AuthenticatedAdminpanelIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminpanelRoute,
+  } as any)
+const AuthenticatedAdminpanelCoursesCourseIdRoute =
+  AuthenticatedAdminpanelCoursesCourseIdRouteImport.update({
+    id: '/courses/$courseId',
+    path: '/courses/$courseId',
+    getParentRoute: () => AuthenticatedAdminpanelRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/adminpanel': typeof AuthenticatedAdminpanelRouteWithChildren
   '/courses': typeof AuthenticatedCoursesRoute
   '/home': typeof AuthenticatedHomeRoute
   '/learningroute': typeof AuthenticatedLearningrouteRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/adminpanel/': typeof AuthenticatedAdminpanelIndexRoute
+  '/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,6 +108,8 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/learningroute': typeof AuthenticatedLearningrouteRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/adminpanel': typeof AuthenticatedAdminpanelIndexRoute
+  '/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,10 +118,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/adminpanel': typeof AuthenticatedAdminpanelRouteWithChildren
   '/_authenticated/courses': typeof AuthenticatedCoursesRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/learningroute': typeof AuthenticatedLearningrouteRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/adminpanel/': typeof AuthenticatedAdminpanelIndexRoute
+  '/_authenticated/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,10 +133,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/account'
+    | '/adminpanel'
     | '/courses'
     | '/home'
     | '/learningroute'
     | '/notifications'
+    | '/adminpanel/'
+    | '/adminpanel/courses/$courseId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,6 +150,8 @@ export interface FileRouteTypes {
     | '/home'
     | '/learningroute'
     | '/notifications'
+    | '/adminpanel'
+    | '/adminpanel/courses/$courseId'
   id:
     | '__root__'
     | '/'
@@ -126,10 +159,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_authenticated/account'
+    | '/_authenticated/adminpanel'
     | '/_authenticated/courses'
     | '/_authenticated/home'
     | '/_authenticated/learningroute'
     | '/_authenticated/notifications'
+    | '/_authenticated/adminpanel/'
+    | '/_authenticated/adminpanel/courses/$courseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCoursesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/adminpanel': {
+      id: '/_authenticated/adminpanel'
+      path: '/adminpanel'
+      fullPath: '/adminpanel'
+      preLoaderRoute: typeof AuthenticatedAdminpanelRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/account': {
       id: '/_authenticated/account'
       path: '/account'
@@ -204,11 +247,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/adminpanel/': {
+      id: '/_authenticated/adminpanel/'
+      path: '/'
+      fullPath: '/adminpanel/'
+      preLoaderRoute: typeof AuthenticatedAdminpanelIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminpanelRoute
+    }
+    '/_authenticated/adminpanel/courses/$courseId': {
+      id: '/_authenticated/adminpanel/courses/$courseId'
+      path: '/courses/$courseId'
+      fullPath: '/adminpanel/courses/$courseId'
+      preLoaderRoute: typeof AuthenticatedAdminpanelCoursesCourseIdRouteImport
+      parentRoute: typeof AuthenticatedAdminpanelRoute
+    }
   }
 }
 
+interface AuthenticatedAdminpanelRouteChildren {
+  AuthenticatedAdminpanelIndexRoute: typeof AuthenticatedAdminpanelIndexRoute
+  AuthenticatedAdminpanelCoursesCourseIdRoute: typeof AuthenticatedAdminpanelCoursesCourseIdRoute
+}
+
+const AuthenticatedAdminpanelRouteChildren: AuthenticatedAdminpanelRouteChildren =
+  {
+    AuthenticatedAdminpanelIndexRoute: AuthenticatedAdminpanelIndexRoute,
+    AuthenticatedAdminpanelCoursesCourseIdRoute:
+      AuthenticatedAdminpanelCoursesCourseIdRoute,
+  }
+
+const AuthenticatedAdminpanelRouteWithChildren =
+  AuthenticatedAdminpanelRoute._addFileChildren(
+    AuthenticatedAdminpanelRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedAdminpanelRoute: typeof AuthenticatedAdminpanelRouteWithChildren
   AuthenticatedCoursesRoute: typeof AuthenticatedCoursesRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedLearningrouteRoute: typeof AuthenticatedLearningrouteRoute
@@ -217,6 +292,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedAdminpanelRoute: AuthenticatedAdminpanelRouteWithChildren,
   AuthenticatedCoursesRoute: AuthenticatedCoursesRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedLearningrouteRoute: AuthenticatedLearningrouteRoute,
