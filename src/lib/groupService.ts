@@ -7,6 +7,21 @@ export interface Professor {
   dictationId?: string
 }
 
+export interface EnrolledUser {
+  id: string
+  firstName: string
+  lastName: string
+  profilePictureUrl: string | null
+}
+
+export interface Inscription {
+  id: string
+  user_id: string
+  group_id: string
+  created_at: string
+  user: EnrolledUser
+}
+
 export interface Group {
   id: string
   course_id: string
@@ -18,10 +33,57 @@ export interface Group {
   professors: Professor[]
   created_at: string
   updated_at: string
+  course?: {
+    id: string
+    name: string
+    description: string
+    portrait_url: string
+    created_at: string
+    updated_at: string
+  }
 }
 
 interface GroupApiResponse {
   groups: Group[]
+}
+
+interface InscriptionsApiResponse {
+  inscriptions: Inscription[]
+}
+
+export async function fetchAvailableGroups(): Promise<Group[]> {
+  const response = await apiClient.get<GroupApiResponse>('/groups/available')
+  return response.groups
+}
+
+export async function enrollInGroup(groupId: string): Promise<void> {
+  await apiClient.post(`/groups/${groupId}/inscriptions`, {})
+}
+
+interface MyInscriptionsApiResponse {
+  inscriptions: {
+    group: Group
+    course: Group['course']
+  }[]
+}
+
+export async function fetchMyInscriptions(): Promise<Group[]> {
+  const response = await apiClient.get<MyInscriptionsApiResponse>(
+    '/users/me/inscriptions',
+  )
+  return response.inscriptions.map((ins) => ({
+    ...ins.group,
+    course: ins.course,
+  }))
+}
+
+export async function fetchGroupInscriptions(
+  groupId: string,
+): Promise<Inscription[]> {
+  const response = await apiClient.get<InscriptionsApiResponse>(
+    `/groups/${groupId}/inscriptions`,
+  )
+  return response.inscriptions
 }
 
 export async function fetchGroup(id: string): Promise<Group> {

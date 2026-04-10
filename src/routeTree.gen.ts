@@ -20,6 +20,7 @@ import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminpanelRouteImport } from './routes/_authenticated/adminpanel'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminpanelIndexRouteImport } from './routes/_authenticated/adminpanel/index'
+import { Route as AuthenticatedGroupsGroupIdRouteImport } from './routes/_authenticated/groups/$groupId'
 import { Route as AuthenticatedAdminpanelCoursesCourseIdRouteImport } from './routes/_authenticated/adminpanel/courses/$courseId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -79,6 +80,12 @@ const AuthenticatedAdminpanelIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminpanelRoute,
   } as any)
+const AuthenticatedGroupsGroupIdRoute =
+  AuthenticatedGroupsGroupIdRouteImport.update({
+    id: '/groups/$groupId',
+    path: '/groups/$groupId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminpanelCoursesCourseIdRoute =
   AuthenticatedAdminpanelCoursesCourseIdRouteImport.update({
     id: '/courses/$courseId',
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/learningroute': typeof AuthenticatedLearningrouteRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/adminpanel/': typeof AuthenticatedAdminpanelIndexRoute
   '/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
@@ -108,6 +116,7 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/learningroute': typeof AuthenticatedLearningrouteRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/adminpanel': typeof AuthenticatedAdminpanelIndexRoute
   '/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/learningroute': typeof AuthenticatedLearningrouteRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/_authenticated/adminpanel/': typeof AuthenticatedAdminpanelIndexRoute
   '/_authenticated/adminpanel/courses/$courseId': typeof AuthenticatedAdminpanelCoursesCourseIdRoute
 }
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/learningroute'
     | '/notifications'
+    | '/groups/$groupId'
     | '/adminpanel/'
     | '/adminpanel/courses/$courseId'
   fileRoutesByTo: FileRoutesByTo
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/learningroute'
     | '/notifications'
+    | '/groups/$groupId'
     | '/adminpanel'
     | '/adminpanel/courses/$courseId'
   id:
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/_authenticated/learningroute'
     | '/_authenticated/notifications'
+    | '/_authenticated/groups/$groupId'
     | '/_authenticated/adminpanel/'
     | '/_authenticated/adminpanel/courses/$courseId'
   fileRoutesById: FileRoutesById
@@ -254,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminpanelIndexRouteImport
       parentRoute: typeof AuthenticatedAdminpanelRoute
     }
+    '/_authenticated/groups/$groupId': {
+      id: '/_authenticated/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/adminpanel/courses/$courseId': {
       id: '/_authenticated/adminpanel/courses/$courseId'
       path: '/courses/$courseId'
@@ -288,6 +308,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedLearningrouteRoute: typeof AuthenticatedLearningrouteRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedGroupsGroupIdRoute: typeof AuthenticatedGroupsGroupIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -297,6 +318,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedLearningrouteRoute: AuthenticatedLearningrouteRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedGroupsGroupIdRoute: AuthenticatedGroupsGroupIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
