@@ -20,6 +20,7 @@ import {
 } from './ui/select'
 import { confirmSignUp, loginWithPassword, signUp } from '#/lib/cognito'
 import { useAuthStore } from '#/store/authStore'
+import { fetchCurrentUser } from '#/lib/userService'
 import {
   COUNTRIES,
   usePhonePrefix,
@@ -114,8 +115,9 @@ export function SignupForm({ className, ...props }: SignupFormProps) {
 
       // 2. Autologin usando la contraseña generada
       const tokens = await loginWithPassword(formData.email, tempPassword)
-
       setSession(tokens)
+      const userProfile = await fetchCurrentUser()
+      useAuthStore.getState().setProfile(userProfile)
       navigate({ to: '/' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Código inválido')

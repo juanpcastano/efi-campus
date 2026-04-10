@@ -11,6 +11,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { initiateLogin, verifyOtp } from '#/lib/cognito'
 import { useAuthStore } from '#/store/authStore'
+import { fetchCurrentUser } from '#/lib/userService'
 
 export function LoginForm({
   className,
@@ -57,6 +58,8 @@ export function LoginForm({
     try {
       const tokens = await verifyOtp(email, otp, session)
       setSession(tokens)
+      const userProfile = await fetchCurrentUser()
+      useAuthStore.getState().setProfile(userProfile)
       navigate({ to: '/' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Código inválido')

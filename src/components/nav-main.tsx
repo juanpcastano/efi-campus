@@ -31,13 +31,13 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const { toggleSidebar } = useSidebar()
+  const { isMobile, toggleSidebar } = useSidebar()
   return (
     <SidebarGroup>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
-            <SidebarMenuItem onClick={() => toggleSidebar()}>
+            <SidebarMenuItem onClick={isMobile ? toggleSidebar : () => {}}>
               <SidebarMenuButton asChild tooltip={item.title}>
                 <Link to={item.url}>
                   {item.icon}

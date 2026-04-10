@@ -17,6 +17,7 @@ export interface AuthUser {
   lastName: string
   role?: 'admin' | 'student'
   profilePictureUrl?: string
+  phoneNumber?: string
 }
 
 interface AuthState {
@@ -26,9 +27,7 @@ interface AuthState {
 
   setSession: (tokens: AuthTokens) => void
   clearSession: () => void
-  setProfile: (
-    data: Partial<Pick<AuthUser, 'role' | 'profilePictureUrl'>>,
-  ) => void
+  setProfile: (data: Partial<AuthUser>) => void
 }
 
 function parseUser(idToken: string): AuthUser {

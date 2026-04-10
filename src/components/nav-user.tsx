@@ -87,11 +87,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <Link to="/account">
-                <DropdownMenuItem
-                  onClick={() => {
-                    toggleSidebar()
-                  }}
-                >
+                <DropdownMenuItem onClick={isMobile ? toggleSidebar : () => {}}>
                   <User />
                   Mi Cuenta
                 </DropdownMenuItem>
