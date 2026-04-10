@@ -7,6 +7,7 @@ export interface User {
   last_name: string
   email: string
   role: 'admin' | 'student'
+  phone_number?: string
 }
 
 interface UserApiResponse {

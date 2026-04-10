@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useState, useMemo } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   useReactTable,
   getCoreRowModel,
@@ -44,9 +44,12 @@ import {
   addDictation,
   deleteDictation,
   fetchGroup,
+  fetchGroupInscriptions,
+  enrollUserInGroup,
+  removeUserFromGroup,
 } from '#/lib/groupService'
 import { fetchUsers } from '#/lib/userService'
-import type { Group, Professor } from '#/lib/groupService'
+import type { Group, Inscription } from '#/lib/groupService'
 import type { User } from '#/lib/userService'
 import { useBreadcrumbStore } from '#/store/breadcrumbStore'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
@@ -68,7 +71,7 @@ function getTerms() {
   return { actual, next }
 }
 
-const columnHelper = createColumnHelper<Group>()
+const groupColumnHelper = createColumnHelper<Group>()
 
 export const Route = createFileRoute(
   '/_authenticated/adminpanel/courses/$courseId',
@@ -76,15 +79,122 @@ export const Route = createFileRoute(
   component: GroupsComponent,
 })
 
+function MemberTable({
+  members,
+  onRemove,
+  type,
+}: {
+  members: any[]
+  onRemove: (id: string) => void
+  type: 'professor' | 'student'
+}) {
+  const memberColumnHelper = useMemo(() => createColumnHelper<any>(), [])
+
+  const columns = useMemo(
+    () => [
+      memberColumnHelper.accessor('firstName', {
+        header: 'Nombre',
+        cell: (info) => info.getValue(),
+      }),
+      memberColumnHelper.accessor('lastName', {
+        header: 'Apellido',
+        cell: (info) => info.getValue(),
+      }),
+      memberColumnHelper.accessor('phoneNumber', {
+        header: 'Teléfono',
+        cell: (info) => info.getValue() || 'N/A',
+      }),
+      memberColumnHelper.display({
+        id: 'actions',
+        header: 'Acciones',
+        cell: (info) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const member = info.row.original
+              const id = type === 'professor' ? member.dictationId : member.id
+              onRemove(id)
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        ),
+      }),
+    ],
+    [memberColumnHelper, type, onRemove],
+  )
+
+  const data = useMemo(
+    () =>
+      type === 'professor'
+        ? members
+        : members.map((ins) => ({ ...ins.user, id: ins.id })),
+    [members, type],
+  )
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext(),
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="text-center py-4 text-muted-foreground"
+              >
+                No hay {type === 'professor' ? 'profesores' : 'estudiantes'}{' '}
+                asignados.
+              </TableCell>
+            </TableRow>
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
 function GroupsComponent() {
   const { courseId } = Route.useParams()
 
   const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const [inscriptions, setInscriptions] = useState<Inscription[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [selectedProfessor, setSelectedProfessor] = useState<string>('')
+  const [selectedStudent, setSelectedStudent] = useState<string>('')
   const [formData, setFormData] = useState({
     schedule: '',
     day_of_week: 'monday',
@@ -109,8 +219,7 @@ function GroupsComponent() {
   const loadUsers = async () => {
     try {
       const allUsers = await fetchUsers()
-      // console.log('All users:', allUsers)
-      setUsers(allUsers) // Quitamos el filtro por 'admin' temporalmente para ver si aparecen todos
+      setUsers(allUsers)
     } catch (error) {
       console.error('Failed to load users:', error)
     }
@@ -134,6 +243,8 @@ function GroupsComponent() {
       const updatedGroup = await fetchGroup(editingGroup.id)
       setEditingGroup(updatedGroup)
       setSelectedProfessor('')
+      const updatedInscriptions = await fetchGroupInscriptions(editingGroup.id)
+      setInscriptions(updatedInscriptions)
       await loadGroups()
     } catch (error) {
       console.error('Failed to add professor:', error)
@@ -146,9 +257,34 @@ function GroupsComponent() {
       await deleteDictation(editingGroup.id, dictationId)
       const updatedGroup = await fetchGroup(editingGroup.id)
       setEditingGroup(updatedGroup)
+      const updatedInscriptions = await fetchGroupInscriptions(editingGroup.id)
+      setInscriptions(updatedInscriptions)
       await loadGroups()
     } catch (error) {
       console.error('Failed to delete professor:', error)
+    }
+  }
+
+  const handleAddStudent = async () => {
+    if (!editingGroup || !selectedStudent) return
+    try {
+      await enrollUserInGroup(editingGroup.id, selectedStudent)
+      const updatedInscriptions = await fetchGroupInscriptions(editingGroup.id)
+      setInscriptions(updatedInscriptions)
+      setSelectedStudent('')
+    } catch (error) {
+      console.error('Failed to enroll student:', error)
+    }
+  }
+
+  const handleRemoveStudent = async (inscriptionId: string) => {
+    if (!editingGroup) return
+    try {
+      await removeUserFromGroup(editingGroup.id, inscriptionId)
+      const updatedInscriptions = await fetchGroupInscriptions(editingGroup.id)
+      setInscriptions(updatedInscriptions)
+    } catch (error) {
+      console.error('Failed to remove student:', error)
     }
   }
 
@@ -197,7 +333,7 @@ function GroupsComponent() {
     }
   }
 
-  const startEdit = (group: Group) => {
+  const startEdit = async (group: Group) => {
     setEditingGroup(group)
     setFormData({
       schedule: group.schedule,
@@ -205,6 +341,12 @@ function GroupsComponent() {
       term: group.term,
     })
     setIsAdding(false)
+    try {
+      const groupInscriptions = await fetchGroupInscriptions(group.id)
+      setInscriptions(groupInscriptions)
+    } catch (error) {
+      console.error('Failed to load inscriptions:', error)
+    }
   }
 
   const startAdd = () => {
@@ -223,83 +365,99 @@ function GroupsComponent() {
     { value: 'sunday', label: 'Domingo' },
   ]
 
-  const columns = [
-    columnHelper.accessor('day_of_week', {
-      header: 'Día',
-      cell: (info) => {
-        const day = days.find((d) => d.value === info.getValue())
-        return day?.label || info.getValue()
-      },
-    }),
-    columnHelper.accessor('schedule', {
-      header: 'Horario',
-      cell: (info) => info.getValue(),
-    }),
-    columnHelper.accessor('professors', {
-      header: 'Profesores',
-      cell: (info) =>
-        info
-          .getValue()
-          .map((p) => `${p.firstName} ${p.lastName}`)
-          .join(', ') || 'Sin asignar',
-    }),
-    columnHelper.accessor('term', {
-      header: 'Término',
-      cell: (info) => info.getValue(),
-    }),
-    columnHelper.accessor('open', {
-      header: 'Estado',
-      cell: (info) => (
-        <Button
-          variant={info.getValue() ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => handleToggleOpen(info.row.original.id)}
-          className="w-24"
-        >
-          {info.getValue() ? (
-            <>
-              <Eye className="h-3 w-3 mr-1" /> Abierto
-            </>
-          ) : (
-            <>
-              <EyeOff className="h-3 w-3 mr-1" /> Cerrado
-            </>
-          )}
-        </Button>
-      ),
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'Acciones',
-      cell: (info) => (
-        <div className="flex gap-2">
+  const columns = useMemo(
+    () => [
+      groupColumnHelper.accessor('day_of_week', {
+        header: 'Día',
+        cell: (info) => {
+          const day = days.find((d) => d.value === info.getValue())
+          return day?.label || info.getValue()
+        },
+      }),
+      groupColumnHelper.accessor('schedule', {
+        header: 'Horario',
+        cell: (info) => info.getValue(),
+      }),
+      groupColumnHelper.accessor('professors', {
+        header: 'Profesores',
+        cell: (info) =>
+          info
+            .getValue()
+            .map((p) => `${p.firstName} ${p.lastName}`)
+            .join(', ') || 'Sin asignar',
+      }),
+      groupColumnHelper.accessor('term', {
+        header: 'Término',
+        cell: (info) => info.getValue(),
+      }),
+      groupColumnHelper.accessor('open', {
+        header: 'Estado',
+        cell: (info) => (
           <Button
-            variant="outline"
+            variant={info.getValue() ? 'default' : 'outline'}
             size="sm"
-            onClick={() => startEdit(info.row.original)}
+            onClick={() => handleToggleOpen(info.row.original.id)}
+            className="w-24"
           >
-            <Pencil className="h-4 w-4" />
+            {info.getValue() ? (
+              <>
+                <Eye className="h-3 w-3 mr-1" /> Abierto
+              </>
+            ) : (
+              <>
+                <EyeOff className="h-3 w-3 mr-1" /> Cerrado
+              </>
+            )}
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              setGroupToDelete(info.row.original.id)
-              setDeleteDialogOpen(true)
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    }),
-  ]
+        ),
+      }),
+      groupColumnHelper.display({
+        id: 'actions',
+        header: 'Acciones',
+        cell: (info) => (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                to="/groups/$groupId"
+                params={{ groupId: info.row.original.id }}
+              >
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => startEdit(info.row.original)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setGroupToDelete(info.row.original.id)
+                setDeleteDialogOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      }),
+    ],
+    [handleToggleOpen, startEdit],
+  )
 
   const table = useReactTable({
     data: groups,
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
+
+  const courseProfessors = useMemo(
+    () => groups.flatMap((g) => g.professors.map((p) => p.id)),
+    [groups],
+  )
 
   return (
     <div className="p-6 space-y-6">
@@ -388,64 +546,103 @@ function GroupsComponent() {
                 </div>
               </div>
               {editingGroup && (
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="font-semibold">Profesores Asignados</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {editingGroup.professors.map((p) => (
-                      <Card
-                        key={p.id}
-                        className="flex items-center gap-2 bg-secondary p-2 rounded"
-                      >
-                        <span>
-                          {p.firstName} {p.lastName}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteProfessor(p.dictationId!)}
+                <div className="space-y-6 pt-4 border-t">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Profesores Asignados</h3>
+                    <MemberTable
+                      members={editingGroup.professors}
+                      onRemove={handleDeleteProfessor}
+                      type="professor"
+                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="professor_select">
+                          Asignar Profesor
+                        </Label>
+                        <Select
+                          value={selectedProfessor}
+                          onValueChange={setSelectedProfessor}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <SelectTrigger id="professor_select">
+                            <SelectValue placeholder="Seleccionar profesor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Usuarios</SelectLabel>
+                              {users
+                                .filter(
+                                  (u) =>
+                                    !editingGroup.professors.find(
+                                      (p) => p.id === u.id,
+                                    ),
+                                )
+                                .map((u) => (
+                                  <SelectItem key={u.id} value={u.id}>
+                                    {u.first_name} {u.last_name}
+                                  </SelectItem>
+                                ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          onClick={handleAddProfessor}
+                          disabled={!selectedProfessor}
+                        >
+                          Agregar
                         </Button>
-                      </Card>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="professor_select">Asignar Profesor</Label>
-                      <Select
-                        value={selectedProfessor}
-                        onValueChange={setSelectedProfessor}
-                      >
-                        <SelectTrigger id="professor_select">
-                          <SelectValue placeholder="Seleccionar profesor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Usuarios</SelectLabel>
-                            {users
-                              .filter(
-                                (u) =>
-                                  !editingGroup.professors.find(
-                                    (p) => p.id === u.id,
-                                  ),
-                              )
-                              .map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                  {u.first_name} {u.last_name}
-                                </SelectItem>
-                              ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      </div>
                     </div>
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        onClick={handleAddProfessor}
-                        disabled={!selectedProfessor}
-                      >
-                        Agregar
-                      </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Estudiantes Inscritos</h3>
+                    <MemberTable
+                      members={inscriptions}
+                      onRemove={handleRemoveStudent}
+                      type="student"
+                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor="student_select">
+                          Enrolar Estudiante
+                        </Label>
+                        <Select
+                          value={selectedStudent}
+                          onValueChange={setSelectedStudent}
+                        >
+                          <SelectTrigger id="student_select">
+                            <SelectValue placeholder="Seleccionar estudiante" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Usuarios</SelectLabel>
+                              {users
+                                .filter(
+                                  (u) =>
+                                    !inscriptions.find(
+                                      (ins) => ins.user.id === u.id,
+                                    ) && !courseProfessors.includes(u.id),
+                                )
+                                .map((u) => (
+                                  <SelectItem key={u.id} value={u.id}>
+                                    {u.first_name} {u.last_name}
+                                  </SelectItem>
+                                ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          onClick={handleAddStudent}
+                          disabled={!selectedStudent}
+                        >
+                          Enrolar
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

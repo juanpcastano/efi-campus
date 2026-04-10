@@ -4,6 +4,7 @@ export interface Professor {
   id: string
   firstName: string
   lastName: string
+  phoneNumber?: string
   dictationId?: string
 }
 
@@ -11,6 +12,7 @@ export interface EnrolledUser {
   id: string
   firstName: string
   lastName: string
+  phoneNumber?: string
   profilePictureUrl: string | null
 }
 
@@ -51,17 +53,15 @@ interface InscriptionsApiResponse {
   inscriptions: Inscription[]
 }
 
-export async function fetchAvailableGroups(): Promise<Group[]> {
-  const response = await apiClient.get<GroupApiResponse>('/groups/available')
-  return response.groups
-}
-
-export async function enrollInGroup(groupId: string): Promise<void> {
-  await apiClient.post(`/groups/${groupId}/inscriptions`, {})
-}
-
 interface MyInscriptionsApiResponse {
   inscriptions: {
+    group: Group
+    course: Group['course']
+  }[]
+}
+
+interface MyDictationsApiResponse {
+  dictations: {
     group: Group
     course: Group['course']
   }[]
@@ -75,6 +75,39 @@ export async function fetchMyInscriptions(): Promise<Group[]> {
     ...ins.group,
     course: ins.course,
   }))
+}
+
+export async function fetchMyDictations(): Promise<Group[]> {
+  const response = await apiClient.get<MyDictationsApiResponse>(
+    '/users/me/dictations',
+  )
+  return response.dictations.map((dict) => ({
+    ...dict.group,
+    course: dict.course,
+  }))
+}
+
+export async function fetchAvailableGroups(): Promise<Group[]> {
+  const response = await apiClient.get<GroupApiResponse>('/groups/available')
+  return response.groups
+}
+
+export async function enrollInGroup(groupId: string): Promise<void> {
+  await apiClient.post(`/groups/${groupId}/inscriptions`, {})
+}
+
+export async function enrollUserInGroup(
+  groupId: string,
+  userId: string,
+): Promise<void> {
+  await apiClient.post(`/groups/${groupId}/inscriptions`, { user_id: userId })
+}
+
+export async function removeUserFromGroup(
+  groupId: string,
+  inscriptionId: string,
+): Promise<void> {
+  await apiClient.delete(`/groups/${groupId}/inscriptions/${inscriptionId}`)
 }
 
 export async function fetchGroupInscriptions(
